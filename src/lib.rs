@@ -26,7 +26,6 @@ pub fn into_cdrs_bytes(input: TokenStream) -> TokenStream {
 
 fn impl_into_cdrs_bytes(ast: &syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
-    // Check if derive(HelloWorld) was specified for a struct
     if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
         let conver_into_bytes: quote::Tokens = fields
             .iter()
@@ -50,7 +49,6 @@ fn impl_into_cdrs_bytes(ast: &syn::DeriveInput) -> quote::Tokens {
             }
         }
     } else {
-        //Nope. This is an Enum. We cannot handle these!
         panic!("#[derive(IntoCDRSBytes)] is only defined for structs, not for enums!");
     }
 }
