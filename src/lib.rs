@@ -8,8 +8,8 @@ extern crate quote;
 
 use proc_macro::TokenStream;
 
-#[proc_macro_derive(IntoCDRSBytes)]
-pub fn into_cdrs_bytes(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(IntoCDRSValue)]
+pub fn into_cdrs_value(input: TokenStream) -> TokenStream {
     // Construct a string representation of the type definition
     let s = input.to_string();
 
@@ -17,13 +17,13 @@ pub fn into_cdrs_bytes(input: TokenStream) -> TokenStream {
     let ast = syn::parse_derive_input(&s).unwrap();
 
     // Build the impl
-    let gen = impl_into_cdrs_bytes(&ast);
+    let gen = impl_into_cdrs_value(&ast);
 
     // Return the generated impl
     gen.parse().unwrap()
 }
 
-fn impl_into_cdrs_bytes(ast: &syn::DeriveInput) -> quote::Tokens {
+fn impl_into_cdrs_value(ast: &syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
     if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
         let conver_into_bytes: quote::Tokens = fields
@@ -31,24 +31,23 @@ fn impl_into_cdrs_bytes(ast: &syn::DeriveInput) -> quote::Tokens {
             .map(|field| field.ident.clone().unwrap())
             .map(|field| {
                 quote! {
-                    let field_bytes = self.#field.into_cdrs_bytes();
-                    bytes.extend_from_slice(
-                        Value::new_normal(field_bytes).into_cbytes().as_slice());
+                    let field_value = self.#field.into_cdrs_value();
+                    bytes.extend_from_slice(field_value.into_cbytes().as_slice());
                 }
             })
             .fold(quote!{}, |acc, line| quote!{#acc #line});
 
         quote! {
-            impl IntoCDRSBytes for #name {
-                fn into_cdrs_bytes(self) -> Bytes {
+            impl IntoCDRSValue for #name {
+                fn into_cdrs_value(self) -> Value {
                     let mut bytes: Vec<u8> = vec![];
                     #conver_into_bytes
-                    Bytes::new(bytes)
+                    Bytes::new(bytes).into()
                 }
             }
         }
     } else {
-        panic!("#[derive(IntoCDRSBytes)] is only defined for structs, not for enums!");
+        panic!("#[derive(IntoCDRSValue)] is only defined for structs, not for enums!");
     }
 }
 
